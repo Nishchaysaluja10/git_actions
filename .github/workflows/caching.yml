@@ -1,0 +1,25 @@
+name: CI with Caching
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        id: cache-70b7c0d
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Prime cache-70b7c0d
+        run: echo "Cache hit/miss: ${{ steps.cache-70b7c0d.outputs.cache-hit }}"
+      
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests (or other build steps)
+        run: npm test
