@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: cache-70b7c0d
+      - name: prime-cache-70b7c0d
         id: prime-cache-70b7c0d
         uses: actions/cache@v4
       - name: Install uv
