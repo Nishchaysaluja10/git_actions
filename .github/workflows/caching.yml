@@ -1,7 +1,6 @@
 name: CI with Caching
 on: 
-  push:
-  workflow_dispatch:
+  workflow_dispatch:# Allows manual triggering
 
 jobs:
   build:
