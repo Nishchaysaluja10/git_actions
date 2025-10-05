@@ -1,26 +1,40 @@
-name: CI with Caching
-on: 
-  workflow_dispatch:# Allows manual triggering
+name: Log ISS Location Data Daily
+
+on:
+  schedule:
+    # Runs at 12:00 UTC (noon) every day
+    - cron: "0 12 * * *"
+  workflow_dispatch: # Allows manual triggering
 
 jobs:
-  build:
+  collect-iss-data:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Cache dependencies
         id: cache-70b7c0d
         uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
-      - name: Prime cache-70b7c0d
-        run: echo "Cache hit/miss: ${{ steps.cache-70b7c0d.outputs.cache-hit }}"
-      
-      - name: Install dependencies
-        run: npm ci
+      - name: Fetch ISS location data
+        run: | # python
+          uv run --with requests python << 'EOF'
+          import requests
 
-      - name: Run tests (or other build steps)
-        run: npm test
+          data = requests.get('http://api.open-notify.org/iss-now.json').text
+          with open('iss-location.jsonl', 'a') as f:
+              f.write(data + '\n')
+          'EOF'
+
+      - name: Commit and push changes
+        run: | # shell
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add iss-location.jsonl
+          git commit -m "Update ISS position data [skip ci]" || exit 0
+          git push
