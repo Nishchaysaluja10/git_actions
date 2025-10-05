@@ -1,11 +1,3 @@
-name: cache
-
-on:
-  schedule:
-    # Runs at 12:00 UTC (noon) every day
-    - cron: "0 12 * * *"
-  workflow_dispatch: # Allows manual triggering
-
 jobs:
   collect-iss-data:
     runs-on: ubuntu-latest
@@ -15,26 +7,38 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: prime-cache-70b7c0d
-        id: prime-cache-70b7c0d
+
+      # CORRECT STEP 1: The caching action with the ID
+      - name: Cache dependencies
+        id: cache-70b7c0d  # This ID must match the name used in the next step
         uses: actions/cache@v4
+        with:
+          path: ~/.cache
+          key: ${{ runner.os }}-api-data-${{ hashFiles('api-key-file') }} # A more appropriate key for your use case
+
+      # CORRECT STEP 2: The echo step with the required name
+      - name: prime-cache-70b7c0d
+        run: echo "Cache hit/miss: ${{ steps.cache-70b7c0d.outputs.cache-hit }}"
+
+      # Your other steps
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
       - name: Fetch ISS location data
-        run: | # python
-          uv run --with requests python << 'EOF'
+        run: |
+          # python
+          uv run --with requests python <<'EOF'
           import requests
-
           data = requests.get('http://api.open-notify.org/iss-now.json').text
           with open('iss-location.jsonl', 'a') as f:
-              f.write(data + '\n')
-          'EOF'
+            f.write(data + '\n')
+          EOF
 
       - name: Commit and push changes
-        run: | # shell
+        run: |
+          # shell
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add iss-location.jsonl
-          git commit -m "Update ISS position data [skip ci]" || exit 0
+          git add .
+          git commit -m "Update ISS data" || echo "No changes to commit"
           git push
